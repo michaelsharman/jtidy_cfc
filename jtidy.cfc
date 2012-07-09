@@ -1,91 +1,160 @@
-<cfcomponent name="jtidy" displayname="jTidy" hint="clean out invalid html">
+component name="jtidy" hint="clean out invalid html"
+{
 
-	<cffunction name="makexHTMLValid" displayname="Tidy parser" hint="Takes a string as an argument and returns parsed and valid xHTML" output="false">
-		<cfargument name="strToParse" required="true" type="string" default="" />
+	/**
+	* ColdFusion port of jTidy (http://jtidy.sourceforge.net/)
+	* 
+	* @hint="Takes a string returns parsed and valid xHTML"
+	* This function reads in a string, checks and corrects any invalid HTML.
+	* By Greg Stewart
+	*
+	* @param strToParse The string to parse (will be written to file).
+	* accessible from the web browser
+	* @return returnPart
+	* @author Greg Stewart (gregs(at)tcias.co.uk)
+	* @version 1, August 22, 2004
+	
+	* @version 1.1, September 09, 2004
+	* with the help of Mark Woods this UDF no longer requires temp files and only accepts
+	* the string to parse
+	
+	* @version 1.2, January 01, 2010
+	* slightly modified version by Mike Henke
+	* added javaloader
+	* 
+	* @version 1.3, July 09, 2012
+	* Modified by Michael Sharman (michael[at]chapter31.com)
+	* @param options Struct of options to define runtime behaviour
+	* @param path Path to the jTidy jar file
+	* @param throwOnError Boolean to halt if an error was thrown
+	* @param logFile Which log file to write exceptions to
+	* @param useJavaLoader Use javaloader to load the jar file
+	*  Removed hard javaloader dependency (jar access is native to Railo 3.2+, you can use javaloader for CF)
+	*  Allowed struct of options to be passed for runtime configuration
+	*  Updated to use cfscript only
+	*  Added full var scoping
+	*  Added option to fail silently
+	*  Added log path argument of where to write errors
+	*  Currently using the latest jTidy (jtidy-r938.zip from http://sourceforge.net/projects/jtidy/files)
+	* Usage:
+	* 	tidy = new jtidy_cfc.jtidy();
+	* 	
+	* 	// Simple usage (default options)
+	* 	validxHTML = tidy.makexHTMLValid(strToParse=mystring)
+	* 	
+	* 	// Simple usage using javaloader
+	* 	validxHTML = tidy.makexHTMLValid(strToParse=mystring, useJavaLoader=true)
+	* 	
+	* 	// Setting custom options
+	* 	opts = {
+	*		bodyOnly = false,
+	* 		spaces = 2
+	* 	} 
+	* 	validxHTML = tidy.makexHTMLValid(strToParse=mystring, options=opts)
+	*/
+	public string function makexHTMLValid(required string strToParse, struct options = {}, string path = "", boolean throwOnError = true, string logFile = "", boolean useJavaLoader = false)
+	{
+		var readBuffer	= "";
+		var inP			= "";
+		var outx		= "";
+		var outstr		= "";
+		var javaloader 	= "";
+		var logTo		= (len(trim(arguments.logFile))) ? arguments.logFile : application.applicationName;
+		var parseData 	= trim(arguments.strToParse);
+		var jarPath 	= (len(trim(arguments.path))) ? arguments.path : getdirectoryfrompath(getcurrenttemplatepath()) & "lib/jtidy-r938.jar";
+		var jOptions 	= {		// default options
+				bodyOnly			= true,
+				hideComments		= true,
+				indentAttributes	= false,
+				indentContent 		= true,
+				makeBare			= true,
+				quiet 				= false,
+				smartIndent 		= true,
+				spaces				= 4,
+				tidyMark			= false,
+				wrapLen 			= 1024,
+				xhtml 				= true
+		};
 		
-		<cfset var returnPart = "" /> <!--- // return variable --->
-		<cfset parseData = trim(arguments.strToParse) />
+		// Simply return the string if it's empty
+		if (!len(trim(parseData)))
+		{
+			return parseData;
+		}		
 		
-		<!--- Simply return the sting if its empty --->
-		<cfif not len(parseData)>
-			<cfreturn parseData />
-		</cfif>
-		
-		<cftry>
-		
-			<cfscript>
-			/**
-			* This function reads in a string, checks and corrects any invalid HTML.
-			* By Greg Stewart
-			*
-			* @param strToParse The string to parse (will be written to file).
-			* accessible from the web browser
-			* @return returnPart
-			* @author Greg Stewart (gregs(at)tcias.co.uk)
-			* @version 1, August 22, 2004
-			
-			* @version 1.1, September 09, 2004
-			* with the help of Mark Woods this UDF no longer requires temp files and only accepts
-			* the string to parse
-			
-			* @version 1.2, January 01, 2010
-			* slightly modified version by Mike Henke
-			* added javaloader
-			*/
-			
-			// generic warning
-			warning="jTidy is not installed on your server.";
-			
-			// jtidy-r938.zip from http://sourceforge.net/projects/jtidy/files
-			loadPaths = ArrayNew(1);
-			loadPaths[1] = getdirectoryfrompath(getcurrenttemplatepath()) & "lib\jtidy-r938.jar";
-     	 	
-			javaloader = createObject("component", "jtidy_cfc.javaloader.JavaLoader").init(loadPaths);														
-			jTidy = javaloader.create("org.w3c.tidy.Tidy").init();	
-			 
-			jTidy.setQuiet(false);
-			jTidy.setIndentContent(true);
-			jTidy.setSmartIndent(true);
-			jTidy.setIndentAttributes(true);
-			jTidy.setWraplen(1024);
-			jTidy.setXHTML(true);
-			
+		try
+		{
+			// Override the default options if passed as an argument
+			if (isValid("struct", arguments.options) && !structIsEmpty(arguments.options))
+			{
+				structAppend(jOptions, arguments.options, true);
+			}
+
+			try
+			{
+				if (arguments.useJavaLoader)
+				{
+					javaloader = createObject("component", "javaloader.JavaLoader").init([jarPath]);
+					jTidy = javaloader.create("org.w3c.tidy.Tidy").init();
+				}
+				else
+				{
+					jTidy = createObject("java", "org.w3c.tidy.Tidy", jarPath).init();	
+				}
+			}
+			catch (any e)
+			{
+				throw(type="tidy.invalidpath", message="Cannot find jTidy in #jarPath#");
+			}
+
+			// Set configuration options (see more http://jtidy.sourceforge.net/apidocs/org/w3c/tidy/Configuration.html)
+			jTidy.setErrfile(logTo);
+			jTidy.setHideComments(jOptions.hideComments);
+			jTidy.setIndentAttributes(jOptions.indentAttributes);
+			jTidy.setIndentContent(jOptions.indentContent);
+			jTidy.setMakeBare(jOptions.makeBare);
+			jTidy.setPrintBodyOnly(jOptions.bodyOnly);
+			jTidy.setQuiet(jOptions.quiet);
+			jTidy.setSmartIndent(jOptions.smartIndent);
+			jTidy.setSpaces(jOptions.spaces);
+			jTidy.setShowWarnings(arguments.throwOnError);
+			jTidy.setTidyMark(jOptions.tidyMark);
+			jTidy.setWraplen(jOptions.wrapLen);
+			jTidy.setXHTML(jOptions.xhtml);
+
 			// create the in and out streams for jTidy
-			readBuffer = CreateObject("java","java.lang.String").init(parseData).getBytes();
+			readBuffer = createObject("java","java.lang.String").init(parseData).getBytes();
 			inP = createobject("java","java.io.ByteArrayInputStream").init(readBuffer);
-			
-			//ByteArrayOutputStream
 			outx = createObject("java", "java.io.ByteArrayOutputStream").init();
 			
 			// do the parsing
 			jTidy.parse(inP,outx);
-			
-			// close the stream
-			// outx.close();
 			outstr = outx.toString();
-			</cfscript>
-			
-			// ok now strip all the header/body stuff
-			<cfset startPos = REFind("<body>", outstr)+6 />
-			<cfset endPos = REFind("</body>", outstr) />
-			
-			<!--- check if output from jtidy is blank --->
-			<cfif outstr eq '' >
-				<cfset warning = "output from jtidy empty" />
-				<cfthrow />
-			</cfif>
-			
-			<cfset returnPart = Mid(outstr, startPos, endPos-startPos) />
-			
-			<cfreturn returnPart />
-			
-			<cfcatch type="a">
-				<!--- display and log error message  --->
-				<cftrace type="warning" text="jtidy_cfc: #warning#" />
-				<!--- displays input data so the application still works --->
-				<cfreturn parseData />
-			</cfcatch>
-		</cftry>
-	</cffunction>
 
-</cfcomponent>
+			// close the stream(s)
+			inP.close();
+			outx.close();
+			
+			if (!len(trim(outstr)))
+			{
+				throw(type="tidy.noresults", message="Output from jtidy empty");
+			}
+
+			return outstr;
+		}
+		catch (any err)
+		{
+			if (arguments.throwOnError)
+			{
+				dump(var=err, abort=1);
+			}
+			else
+			{
+				trace type="warning" text="jtidy_cfc: #err.message#";
+				writeLog(type="error", text="jtidy_cfc: #err.message#", file="#logTo#");
+				return parseData; // Return original string on error
+			}
+		}
+	}
+		
+}

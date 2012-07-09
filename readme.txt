@@ -1,1 +1,0 @@
-place jtidy_cfc folder in web root or create a coldfusion mapping

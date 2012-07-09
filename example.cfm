@@ -1,7 +1,4 @@
-<!--- see readme.txt for testing this example file --->
-
-<!--- component path to jtidy.cfc --->
-<cfset componentPath = "jtidy_cfc.jtidy" />
+<cfset tidy = new jtidy()>
 
 <cfsavecontent variable="test">
 <html>
@@ -51,13 +48,16 @@
 </html>
 </cfsavecontent>
 
-<cfinvoke 
- component="#componentPath#" 
-    method="makexHTMLValid" 
-	strToParse="#test#"
-    returnvariable="validxHTML"
-    >
-	
-<!--- <cfdump var="#validxHTML#"> --->
+<!--- Original --->
+<cfoutput>
+	<h2>Original Text</h2>
+	<pre>#htmlEditFormat(test)#</pre>
+	<hr>
+</cfoutput>
 
-<cfoutput>#validxHTML#</cfoutput>
+<!--- Clean/pretty --->
+<cfset validxHTML = tidy.makexHTMLValid(strToParse=test)>
+<cfoutput>
+	<h2>Clean/Pretty Text</h2>
+	<pre>#htmlEditFormat(validxHTML)#</pre>
+</cfoutput>
