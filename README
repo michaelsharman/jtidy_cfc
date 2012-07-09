@@ -29,36 +29,36 @@ Put the jtidy\_cfc folder in your web root (recommended for _testing only_) or c
 
 ## Usage
 
-	tidy = new jtidy_cfc.jtidy();
+    tidy = new jtidy_cfc.jtidy();
 
-	// Simple usage (default options)
-	validxHTML = tidy.makexHTMLValid(strToParse=mystring);
+    // Simple usage (default options)
+    validxHTML = tidy.makexHTMLValid(strToParse=mystring);
 
-	// Simple usage using javaloader
-	validxHTML = tidy.makexHTMLValid(strToParse=mystring, useJavaLoader=true);
+    // Simple usage using javaloader
+    validxHTML = tidy.makexHTMLValid(strToParse=mystring, useJavaLoader=true);
 
-	// Setting custom options
-	opts = {
-	  bodyOnly = false,
-	  spaces = 2
-	} 
-	validxHTML = tidy.makexHTMLValid(strToParse=mystring, options=opts);
+    // Setting custom options
+    opts = {
+        bodyOnly = false,
+        spaces = 2
+    } 
+    validxHTML = tidy.makexHTMLValid(strToParse=mystring, options=opts);
 	
 ## Options
 
 The current options you can pass ([see more on the javadoc page](http://jtidy.sourceforge.net/apidocs/org/w3c/tidy/Configuration.html)):
 
-	jOptions = {
-		bodyOnly			= true,
-		hideComments		= true,
-		indentAttributes	= false,
-		indentContent 		= true,
-		makeBare			= true,
-		quiet 				= false,
-		smartIndent 		= true,
-		spaces				= 4,
-		tidyMark			= false,
-		wrapLen 			= 1024,
-		xhtml 				= true
-	};
-	validxHTML = tidy.makexHTMLValid(strToParse=mystring, options=jOptions);
+    jOptions = {
+        bodyOnly			= true,
+        hideComments		= true,
+        indentAttributes	= false,
+        indentContent 		= true,
+        makeBare			= true,
+        quiet 				= false,
+        smartIndent 		= true,
+        spaces				= 4,
+        tidyMark			= false,
+        wrapLen 			= 1024,
+        xhtml 				= true
+    };
+    validxHTML = tidy.makexHTMLValid(strToParse=mystring, options=jOptions);
