@@ -16,6 +16,7 @@ This version is a [fork from mhenke](https://github.com/mhenke/jtidy_cfc)
 *  Added option to fail silently or throw on error
 *  Added log path argument of where to write errors
 *  Removed auto-stripping of header/footer content, use a config option instead
+*  Added a character encoding value to options, defaults to UTF8
 
 
 ## Requirements
@@ -41,9 +42,9 @@ Put the jtidy\_cfc folder in your web root (recommended for _testing only_) or c
     opts = {
         bodyOnly = false,
         spaces = 2
-    } 
+    }
     validxHTML = tidy.makexHTMLValid(strToParse=mystring, options=opts);
-	
+
 ## Options
 
 The current options you can pass ([see more on the javadoc page](http://jtidy.sourceforge.net/apidocs/org/w3c/tidy/Configuration.html)):
