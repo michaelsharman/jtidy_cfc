@@ -74,7 +74,11 @@ component name="jtidy" hint="clean out invalid html"
 			tidyMark			= false,
 			wrapLen			= 1024,
 			xhtml				= true,
-			encoding			= "UTF8"
+			encoding			= "UTF8",
+			numEntities		= true,
+			quoteNbsp			= false,
+			word2000			= true,
+			xmlOut				= true
 		};
 
 		// Simply return the string if it's empty
@@ -122,13 +126,12 @@ component name="jtidy" hint="clean out invalid html"
 			jTidy.setTidyMark(jOptions.tidyMark);
 			jTidy.setWraplen(jOptions.wrapLen);
 			jTidy.setXHTML(jOptions.xhtml);
-
-			jTidy.setNumEntities(true);
+			jTidy.setNumEntities(jOptions.numEntities);
 			jTidy.setInputEncoding(javaCast("string", jOptions.encoding));
 			jTidy.setOutputEncoding(javaCast("string", jOptions.encoding));
-			jTidy.setQuoteNbsp(false);
-			jTidy.setWord2000(true);
-			jTidy.setXmlOut(true);
+			jTidy.setQuoteNbsp(jOptions.quoteNbsp);
+			jTidy.setWord2000(jOptions.word2000);
+			jTidy.setXmlOut(jOptions.xmlOut);
 
 			// create the in and out streams for jTidy
 			readBuffer = createObject("java","java.lang.String").init(parseData).getBytes(jOptions.encoding);
